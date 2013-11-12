@@ -1,13 +1,14 @@
 package worker
 
 import (
-	"fmt"
-	"log"
 	"sync"
 	"time"
+
+	// "fmt"
+	// "log"
 )
 
-var MaxJobs int
+var MaxJobs int = 4
 
 type Job interface {
 	Run(chan int)
@@ -16,6 +17,8 @@ type Job interface {
 type Package struct {
 	ID     int64
 	Status JobStatus
+
+	Return int
 
 	job Job
 }
@@ -70,11 +73,12 @@ func (w *Worker) Add(j Job) {
 		Status: Queued,
 		job:    j,
 	}
+
 	w.jobs[w.next_id] = &p
 	w.queue.Add(p)
 
-	w.emit(jobAdded, p)
-	w.emit(JobAdded, p)
+	w.emit(jobAdded, w.jobs[p.ID])
+	w.emit(JobAdded, w.jobs[p.ID])
 
 	w.next_id++
 }
@@ -133,7 +137,6 @@ func (w *Worker) start(ch chan int) {
 			time.Sleep(25 * time.Millisecond)
 		}
 
-		fmt.Println("Shutting down worker")
 		w.started.Set(false)
 		ch <- 1
 	}
@@ -141,24 +144,49 @@ func (w *Worker) start(ch chan int) {
 
 func (w *Worker) runJob(p *Package, return_ch chan int) {
 
-	log.Printf("Starting job %d", p.ID)
+	// log.Printf("Starting job %d", p.ID)
 	job_ch := make(chan int)
 	go p.job.Run(job_ch)
 
-	w.emit(jobStarted, p)
-	w.emit(JobStarted, p)
+	p.Status = Running
 
-	<-job_ch
+	w.emit(jobStarted, w.jobs[p.ID])
+	w.emit(JobStarted, w.jobs[p.ID])
 
-	log.Printf("Job %d finished", p.ID)
-	w.emit(jobFinished, p)
-	w.emit(JobFinished, p)
+	w.jobs[p.ID].Return = <-job_ch
+
+	// log.Printf("Job %d finished", p.ID)
+	w.emit(jobFinished, w.jobs[p.ID])
+	w.emit(JobFinished, w.jobs[p.ID])
 
 	return_ch <- 1
 }
 
 func (w *Worker) jobFinished(args ...interface{}) {
-	id := args[0].(Package).ID
+	pk := args[0].(*Package)
 
-	w.jobs[id].Status = Completed
+	pk.Status = Finished
+}
+
+func (w Worker) Stats() (stats WorkerStats) {
+	for _, p := range w.jobs {
+		switch p.Status {
+		case Queued:
+			stats.Queued++
+		case Running:
+			stats.Running++
+		case Finished:
+			stats.Finished++
+		case Errored:
+			stats.Errored++
+		}
+
+		stats.Total++
+	}
+
+	return
+}
+
+func (p Package) Job() Job {
+	return p.job
 }

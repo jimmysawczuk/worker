@@ -19,9 +19,9 @@ const (
 type JobStatus int
 
 const (
-	Queued JobStatus = iota >> 2
+	Queued JobStatus = 1 << iota
 	Running
-	Completed
+	Finished
 	Errored
 )
 
@@ -41,7 +41,7 @@ type Switch struct {
 }
 
 type LockableChanInt struct {
-	ch chan int
+	ch   chan int
 	lock sync.RWMutex
 }
 
@@ -161,4 +161,12 @@ func (r *Register) Empty() bool {
 	}
 
 	return true
+}
+
+type WorkerStats struct {
+	Total    int64
+	Running  int64
+	Finished int64
+	Queued   int64
+	Errored  int64
 }

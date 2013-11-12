@@ -10,7 +10,7 @@ import (
 var worker Worker
 
 type SampleJob struct {
-	Name string
+	Name     string
 	Duration time.Duration
 }
 
@@ -30,15 +30,15 @@ func init() {
 }
 
 func randomIntDuration(min, max int) time.Duration {
-	r := int64(rand.Int31n(int32(max - min)) + int32(min))
+	r := int64(rand.Int31n(int32(max-min)) + int32(min))
 	dur := time.Duration(int64(r)) * time.Second
 
 	return dur
 }
 
 func randomFloatDuration(min, max float64) time.Duration {
-	r := rand.Float64() * (max - min) + min
-	dur := time.Duration(int64(r * 1e6)) * time.Microsecond
+	r := rand.Float64()*(max-min) + min
+	dur := time.Duration(int64(r*1e6)) * time.Microsecond
 
 	return dur
 }
@@ -54,7 +54,7 @@ func TestRun(t *testing.T) {
 	worker.reset()
 
 	for i := 0; i < 20; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(1, 5) }
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(1, 5)}
 		worker.Add(&j)
 	}
 	worker.RunUntilDone()
@@ -62,6 +62,17 @@ func TestRun(t *testing.T) {
 	time.Sleep(15 * time.Second)
 
 	for i := 20; i < 35; i++ {
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(1, 5)}
+		worker.Add(&j)
+	}
+	worker.RunUntilDone()
+}
+
+func TestSmallRun(t *testing.T) {
+	MaxJobs = 15
+	worker.reset()
+
+	for i := 0; i < 5; i++ {
 		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(1, 5)}
 		worker.Add(&j)
 	}
@@ -100,7 +111,7 @@ func TestAddAndRun(t *testing.T) {
 func TestFloatTimes(t *testing.T) {
 	worker.reset()
 	for i := 0; i < 15; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i + 1), Duration: randomFloatDuration(3, 7) }
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomFloatDuration(3, 7)}
 		worker.Add(&j)
 	}
 	worker.RunUntilDone()
