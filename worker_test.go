@@ -53,6 +53,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
+	MaxJobs = 5
 	worker.reset()
 
 	for i := 0; i < 20; i++ {
@@ -84,6 +85,7 @@ func TestSmallRun(t *testing.T) {
 }
 
 func TestAddAndRun(t *testing.T) {
+	MaxJobs = 5
 	worker.reset()
 	worker.On(JobAdded, func(args ...interface{}) {
 		p := args[0].(*Package)
@@ -115,6 +117,7 @@ func TestAddAndRun(t *testing.T) {
 }
 
 func TestFloatTimes(t *testing.T) {
+	MaxJobs = 5
 	worker.reset()
 	for i := 0; i < 15; i++ {
 		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomFloatDuration(3, 9)}

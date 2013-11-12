@@ -10,7 +10,6 @@ const (
 	jobAdded Event = 1 << iota
 	jobStarted
 	jobFinished
-
 	JobAdded
 	JobStarted
 	JobFinished
@@ -24,11 +23,6 @@ const (
 	Finished
 	Errored
 )
-
-type Counter struct {
-	val  int
-	lock sync.RWMutex
-}
 
 type Queue struct {
 	jobs []*Package
@@ -51,37 +45,6 @@ type Map struct {
 }
 
 type Register []LockableChanInt
-
-func (c *Counter) Add(i int) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	c.val = c.val + i
-}
-
-func (c *Counter) Sub(i int) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	c.val = c.val - i
-}
-
-func (c *Counter) AddOne() {
-	c.Add(1)
-}
-
-func (c *Counter) SubOne() {
-	c.Sub(1)
-}
-
-func (c *Counter) Val() int {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
-	v := c.val
-
-	return v
-}
 
 func NewQueue() Queue {
 	q := Queue{}
