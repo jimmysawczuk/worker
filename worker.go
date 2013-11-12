@@ -20,23 +20,22 @@ type Package struct {
 
 	Return int
 
-	job Job
+	job  Job
+	lock sync.Mutex
 }
 
 type Worker struct {
-	queue Queue
-	jobs  map[int64]*Package
-
-	max_jobs     int
-	running_jobs Register
-
-	next_id int64
-	id_lock sync.Mutex
+	max_jobs int
+	next_id  int64
+	id_lock  sync.Mutex
+	events   map[Event][]func(...interface{})
 
 	started  Switch
 	start_ch chan int
 
-	events map[Event][]func(...interface{})
+	queue        Queue
+	jobs         Map
+	running_jobs Register
 }
 
 func NewWorker() Worker {
@@ -52,7 +51,7 @@ func NewWorker() Worker {
 func (w *Worker) reset() {
 	w.next_id = 1
 	w.queue = NewQueue()
-	w.jobs = make(map[int64]*Package)
+	w.jobs = NewMap()
 
 	w.events = make(map[Event][]func(...interface{}))
 	w.running_jobs = make(Register, MaxJobs)
@@ -66,21 +65,21 @@ func (w *Worker) builtInEvents() {
 
 func (w *Worker) Add(j Job) {
 	w.id_lock.Lock()
-	defer w.id_lock.Unlock()
+	this_id := w.next_id
+	w.next_id++
+	w.id_lock.Unlock()
 
 	p := Package{
-		ID:     w.next_id,
+		ID:     this_id,
 		Status: Queued,
 		job:    j,
 	}
 
-	w.jobs[w.next_id] = &p
+	w.jobs.Set(p)
 	w.queue.Add(p)
 
-	w.emit(jobAdded, w.jobs[p.ID])
-	w.emit(JobAdded, w.jobs[p.ID])
-
-	w.next_id++
+	w.emit(jobAdded, w.jobs.Get(p.ID))
+	w.emit(JobAdded, w.jobs.Get(p.ID))
 }
 
 func (w *Worker) On(e Event, cb func(...interface{})) {
@@ -134,7 +133,7 @@ func (w *Worker) start(ch chan int) {
 				}
 			}
 
-			time.Sleep(25 * time.Millisecond)
+			time.Sleep(5 * time.Millisecond)
 		}
 
 		w.started.Set(false)
@@ -150,14 +149,14 @@ func (w *Worker) runJob(p *Package, return_ch chan int) {
 
 	p.Status = Running
 
-	w.emit(jobStarted, w.jobs[p.ID])
-	w.emit(JobStarted, w.jobs[p.ID])
+	w.emit(jobStarted, w.jobs.Get(p.ID))
+	w.emit(JobStarted, w.jobs.Get(p.ID))
 
-	w.jobs[p.ID].Return = <-job_ch
+	w.jobs.Get(p.ID).Return = <-job_ch
 
 	// log.Printf("Job %d finished", p.ID)
-	w.emit(jobFinished, w.jobs[p.ID])
-	w.emit(JobFinished, w.jobs[p.ID])
+	w.emit(jobFinished, w.jobs.Get(p.ID))
+	w.emit(JobFinished, w.jobs.Get(p.ID))
 
 	return_ch <- 1
 }
@@ -169,7 +168,7 @@ func (w *Worker) jobFinished(args ...interface{}) {
 }
 
 func (w Worker) Stats() (stats WorkerStats) {
-	for _, p := range w.jobs {
+	for _, p := range w.jobs.jobs {
 		switch p.Status {
 		case Queued:
 			stats.Queued++

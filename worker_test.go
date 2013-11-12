@@ -1,10 +1,12 @@
 package worker
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 	"time"
+
+	"fmt"
+	"log"
 )
 
 var worker Worker
@@ -17,9 +19,9 @@ type SampleJob struct {
 func (s *SampleJob) Run(ch chan int) {
 
 	time.Sleep(s.Duration)
-	fmt.Printf("Done, slept for %s\n", s.Duration)
+	log.Printf("Done, slept for %s\n", s.Duration)
 
-	ch <- 1
+	ch <- 0
 }
 
 func init() {
@@ -54,15 +56,17 @@ func TestRun(t *testing.T) {
 	worker.reset()
 
 	for i := 0; i < 20; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(1, 5)}
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(2, 6)}
 		worker.Add(&j)
 	}
 	worker.RunUntilDone()
 
-	time.Sleep(15 * time.Second)
+	dur := time.Duration(5 * time.Second)
+	log.Printf("Sleeping for %s\n", dur)
+	time.Sleep(dur)
 
 	for i := 20; i < 35; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(1, 5)}
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(2, 6)}
 		worker.Add(&j)
 	}
 	worker.RunUntilDone()
@@ -73,7 +77,7 @@ func TestSmallRun(t *testing.T) {
 	worker.reset()
 
 	for i := 0; i < 5; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(1, 5)}
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(2, 6)}
 		worker.Add(&j)
 	}
 	worker.RunUntilDone()
@@ -82,24 +86,26 @@ func TestSmallRun(t *testing.T) {
 func TestAddAndRun(t *testing.T) {
 	worker.reset()
 	worker.On(JobAdded, func(args ...interface{}) {
-		p := args[0].(Package)
+		p := args[0].(*Package)
 		job := *(p.job.(*SampleJob))
 
 		fmt.Printf("Job %s added\n", job.Name)
 	})
 
 	for i := 0; i < 15; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(1, 5)}
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(5, 10)}
 		worker.Add(&j)
 	}
 
 	ch := make(chan int)
 	go worker.Start(ch)
 
-	time.Sleep(20 * time.Second)
+	dur := time.Duration(5 * time.Second)
+	log.Printf("Sleeping for %s\n", dur)
+	time.Sleep(dur)
 
 	for i := 15; i < 30; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d (delayed)", i+1), Duration: randomIntDuration(1, 5)}
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d (delayed by %s)", i+1, dur), Duration: randomIntDuration(2, 6)}
 		worker.Add(&j)
 	}
 
@@ -111,7 +117,7 @@ func TestAddAndRun(t *testing.T) {
 func TestFloatTimes(t *testing.T) {
 	worker.reset()
 	for i := 0; i < 15; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomFloatDuration(3, 7)}
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomFloatDuration(3, 9)}
 		worker.Add(&j)
 	}
 	worker.RunUntilDone()

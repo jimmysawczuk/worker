@@ -45,6 +45,11 @@ type LockableChanInt struct {
 	lock sync.RWMutex
 }
 
+type Map struct {
+	jobs map[int64]*Package
+	lock sync.RWMutex
+}
+
 type Register []LockableChanInt
 
 func (c *Counter) Add(i int) {
@@ -161,6 +166,30 @@ func (r *Register) Empty() bool {
 	}
 
 	return true
+}
+
+func NewMap() Map {
+	m := Map{
+		jobs: make(map[int64]*Package),
+	}
+
+	return m
+}
+
+func (m *Map) Set(val Package) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	m.jobs[val.ID] = &val
+}
+
+func (m *Map) Get(id int64) *Package {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	val := m.jobs[id]
+
+	return val
 }
 
 type WorkerStats struct {
