@@ -40,6 +40,9 @@ func (s *SampleJob) Run(ch chan int) {
 	ch <- 0
 }
 
+// only do 3 jobs at a time
+worker.MaxJobs = 3
+
 w := worker.NewWorker()
 w.Add(SampleJob{
 	Name: "sleep 1",
