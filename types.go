@@ -7,12 +7,12 @@ import (
 type Event int
 
 const (
-	jobAdded Event = 1 << iota
-	jobStarted
-	jobFinished
-	JobAdded
-	JobStarted
-	JobFinished
+	jobAdded    Event = 1 << iota
+	jobStarted  Event
+	jobFinished Event
+	JobAdded    Event
+	JobStarted  Event
+	JobFinished Event
 )
 
 type JobStatus int
