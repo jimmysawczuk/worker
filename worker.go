@@ -3,9 +3,6 @@ package worker
 import (
 	"sync"
 	"time"
-
-	// "fmt"
-	// "log"
 )
 
 var MaxJobs int = 4
