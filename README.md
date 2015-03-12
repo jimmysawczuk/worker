@@ -1,5 +1,7 @@
 # worker
 
+[ ![travis-ci status for jimmysawczuk/worker](https://travis-ci.org/jimmysawczuk/worker.svg)](https://travis-ci.org/jimmysawczuk/worker)
+
 Package `worker` is a Go package designed to facilitate the easy parallelization of a number of tasks `N` with up to `n` at a time being computed concurrently.
 
 ## Getting started
