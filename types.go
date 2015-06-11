@@ -4,6 +4,13 @@ import (
 	"sync"
 )
 
+type ExitCode int
+
+const (
+	ExitNormally ExitCode = 0
+	ExitWhenDone          = 4
+)
+
 type Event int
 
 const (

@@ -9,7 +9,7 @@ import (
 	"log"
 )
 
-var worker Worker
+// var worker Worker
 
 type SampleJob struct {
 	Name     string
@@ -19,15 +19,13 @@ type SampleJob struct {
 func (s *SampleJob) Run(ch chan int) {
 
 	time.Sleep(s.Duration)
-	log.Printf("Done, slept for %s\n", s.Duration)
+	log.Printf("%s done, slept for %s\n", s.Name, s.Duration)
 
 	ch <- 0
 }
 
 func init() {
 	MaxJobs = 7
-	worker = NewWorker()
-
 	rand.Seed(time.Now().Unix())
 }
 
@@ -46,6 +44,7 @@ func randomFloatDuration(min, max float64) time.Duration {
 }
 
 func TestAdd(t *testing.T) {
+	worker := NewWorker()
 	for i := 0; i < 60; i++ {
 		j := SampleJob{}
 		worker.Add(&j)
@@ -54,7 +53,7 @@ func TestAdd(t *testing.T) {
 
 func TestRun(t *testing.T) {
 	MaxJobs = 5
-	worker.reset()
+	worker := NewWorker()
 
 	for i := 0; i < 20; i++ {
 		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(2, 6)}
@@ -67,7 +66,7 @@ func TestRun(t *testing.T) {
 	time.Sleep(dur)
 
 	for i := 20; i < 35; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(2, 6)}
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomFloatDuration(2, 6)}
 		worker.Add(&j)
 	}
 	worker.RunUntilDone()
@@ -75,7 +74,7 @@ func TestRun(t *testing.T) {
 
 func TestSmallRun(t *testing.T) {
 	MaxJobs = 15
-	worker.reset()
+	worker := NewWorker()
 
 	for i := 0; i < 5; i++ {
 		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(2, 6)}
@@ -84,44 +83,69 @@ func TestSmallRun(t *testing.T) {
 	worker.RunUntilDone()
 }
 
-func TestAddAndRun(t *testing.T) {
+func TestRunUntilFinished(t *testing.T) {
 	MaxJobs = 5
-	worker.reset()
+	worker := NewWorker()
 	worker.On(JobAdded, func(args ...interface{}) {
 		p := args[0].(*Package)
 		job := *(p.job.(*SampleJob))
 
-		fmt.Printf("Job %s added\n", job.Name)
+		log.Printf("Job %s added, duration %s\n", job.Name, job.Duration)
 	})
 
-	for i := 0; i < 15; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomIntDuration(5, 10)}
+	kill_ch := make(chan ExitCode)
+	go worker.RunUntilStopped(kill_ch)
+
+	for i := 0; i < 10; i++ {
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d (graceful)", i+1), Duration: randomIntDuration(1, 5)}
 		worker.Add(&j)
 	}
 
-	ch := make(chan int)
-	go worker.Start(ch)
-
-	dur := time.Duration(5 * time.Second)
-	log.Printf("Sleeping for %s\n", dur)
-	time.Sleep(dur)
-
-	for i := 15; i < 30; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d (delayed by %s)", i+1, dur), Duration: randomIntDuration(2, 6)}
+	for i := 10; i < 15; i++ {
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d (graceful)", i+1), Duration: randomIntDuration(3, 6)}
 		worker.Add(&j)
 	}
 
-	<-ch
+	time.Sleep(5 * time.Second)
+	kill_ch <- ExitWhenDone
+	log.Printf("Exiting when done")
 
-	worker.RunUntilDone()
+	code := <-kill_ch
+	log.Printf("Exited with code %d", code)
 }
 
-func TestFloatTimes(t *testing.T) {
+func TestExtendedRun(t *testing.T) {
 	MaxJobs = 5
-	worker.reset()
-	for i := 0; i < 15; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomFloatDuration(3, 9)}
+	worker := NewWorker()
+	worker.On(JobAdded, func(args ...interface{}) {
+		p := args[0].(*Package)
+		job := *(p.job.(*SampleJob))
+
+		log.Printf("Job %s added, duration %s\n", job.Name, job.Duration)
+	})
+
+	kill_ch := make(chan ExitCode)
+	go worker.RunUntilStopped(kill_ch)
+
+	for i := 0; i < 10; i++ {
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d (extended)", i+1), Duration: randomIntDuration(1, 5)}
 		worker.Add(&j)
 	}
-	worker.RunUntilDone()
+
+	log.Printf("Sleeping 20 seconds")
+	time.Sleep(20 * time.Second)
+
+	for i := 10; i < 15; i++ {
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d (extended)", i+1), Duration: randomIntDuration(3, 6)}
+		worker.Add(&j)
+	}
+
+	log.Printf("Sleeping 15 seconds")
+	time.Sleep(15 * time.Second)
+
+	kill_ch <- ExitWhenDone
+	log.Printf("Exiting when done")
+
+	code := <-kill_ch
+	log.Printf("Exited with code %d", code)
 }

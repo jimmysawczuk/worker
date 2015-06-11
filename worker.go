@@ -96,21 +96,64 @@ func (w *Worker) emit(e Event, arguments ...interface{}) {
 }
 
 func (w *Worker) RunUntilDone() {
-	w.start_ch = make(chan int)
-	go w.start(w.start_ch)
-	<-w.start_ch
+	w.runUntilDone()
 }
 
-func (w *Worker) Start(ch chan int) {
-	w.start_ch = make(chan int)
-	go w.start(w.start_ch)
-	<-w.start_ch
-	ch <- 1
+func (w *Worker) RunUntilStopped(stop_ch chan ExitCode) {
+	internal_ch := make(chan ExitCode)
+	go w.runUntilKilled(stop_ch, internal_ch)
+	ret := <-internal_ch
+	stop_ch <- ret
 }
 
-func (w *Worker) start(ch chan int) {
+func (w *Worker) runUntilKilled(kill_ch chan ExitCode, return_ch chan ExitCode) {
 	if !w.started.On() {
 		w.started.Set(true)
+		defer w.started.Set(false)
+
+		exit := false
+
+		for {
+			select {
+			case code := <-kill_ch:
+				if code == ExitWhenDone {
+					exit = true
+				}
+
+			default:
+				for i := 0; i < len(w.running_jobs); i++ {
+					if w.running_jobs[i].Ch() == nil {
+						p := w.queue.Top()
+						if p == nil {
+							break
+						}
+
+						w.running_jobs[i].SetCh(make(chan int))
+						go (func(i int) {
+							<-w.running_jobs[i].Ch()
+							w.running_jobs[i].SetCh(nil)
+						})(i)
+						go w.runJob(p, w.running_jobs[i].Ch())
+					}
+				}
+
+				if exit && w.queue.Len() == 0 && w.running_jobs.Empty() {
+					return_ch <- ExitWhenDone
+					return
+				}
+				time.Sleep(5 * time.Millisecond)
+			}
+		}
+	}
+
+	return_ch <- ExitNormally
+	return
+}
+
+func (w *Worker) runUntilDone() {
+	if !w.started.On() {
+		w.started.Set(true)
+		defer w.started.Set(false)
 
 		for w.queue.Len() > 0 || !w.running_jobs.Empty() {
 
@@ -132,9 +175,6 @@ func (w *Worker) start(ch chan int) {
 
 			time.Sleep(5 * time.Millisecond)
 		}
-
-		w.started.Set(false)
-		ch <- 1
 	}
 }
 
