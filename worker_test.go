@@ -16,12 +16,9 @@ type SampleJob struct {
 	Duration time.Duration
 }
 
-func (s *SampleJob) Run(ch chan int) {
-
+func (s *SampleJob) Run() {
 	time.Sleep(s.Duration)
 	log.Printf("%s done, slept for %s\n", s.Name, s.Duration)
-
-	ch <- 0
 }
 
 func init() {
@@ -66,7 +63,7 @@ func TestRun(t *testing.T) {
 	time.Sleep(dur)
 
 	for i := 20; i < 35; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomFloatDuration(2, 6)}
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomFloatDuration(3, 3)}
 		worker.Add(&j)
 	}
 	worker.RunUntilDone()
