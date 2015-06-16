@@ -39,6 +39,13 @@ func (q *Queue) Add(j *Package) {
 	q.jobs = append(q.jobs, j)
 }
 
+func (q *Queue) Prepend(j *Package) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+
+	q.jobs = append([]*Package{j}, q.jobs...)
+}
+
 func (q *Queue) Len() int {
 	q.lock.RLock()
 	defer q.lock.RUnlock()

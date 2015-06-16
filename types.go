@@ -32,18 +32,18 @@ const (
 	Errored
 )
 
-type lockableChanInt struct {
-	ch   chan int
+type registerEntry struct {
+	ch   chan bool
 	lock *sync.RWMutex
 }
 
-func (lc *lockableChanInt) init() {
+func (lc *registerEntry) init() {
 	if lc.lock == nil {
 		lc.lock = new(sync.RWMutex)
 	}
 }
 
-func (lc *lockableChanInt) Ch() chan int {
+func (lc *registerEntry) Ch() chan bool {
 	lc.init()
 
 	lc.lock.RLock()
@@ -54,7 +54,7 @@ func (lc *lockableChanInt) Ch() chan int {
 	return v
 }
 
-func (lc *lockableChanInt) SetCh(ch chan int) {
+func (lc *registerEntry) SetCh(ch chan bool) {
 	lc.init()
 
 	lc.lock.Lock()
@@ -63,7 +63,7 @@ func (lc *lockableChanInt) SetCh(ch chan int) {
 	lc.ch = ch
 }
 
-type register []lockableChanInt
+type register []registerEntry
 
 func (r *register) Empty() bool {
 	for i := 0; i < len(*r); i++ {

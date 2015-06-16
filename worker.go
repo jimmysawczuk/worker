@@ -19,8 +19,7 @@ type Worker struct {
 	next_id int64
 	id_lock sync.Mutex
 
-	started  Switch
-	start_ch chan int
+	started Switch
 
 	queue        Queue
 	jobs         Map
@@ -42,8 +41,14 @@ func (w *Worker) reset() {
 	w.queue = NewQueue()
 	w.jobs = NewMap()
 
+	if w.max_jobs == 0 && MaxJobs > 0 {
+		w.max_jobs = MaxJobs
+	} else {
+		w.max_jobs = 1
+	}
+
 	w.events = make(map[Event][]func(...interface{}))
-	w.running_jobs = make(register, MaxJobs)
+	w.running_jobs = make(register, w.max_jobs)
 }
 
 func (w *Worker) builtInEvents() {
@@ -124,7 +129,7 @@ func (w *Worker) runUntilKilled(kill_ch chan ExitCode, return_ch chan ExitCode) 
 							break
 						}
 
-						w.running_jobs[i].SetCh(make(chan int))
+						w.running_jobs[i].SetCh(make(chan bool))
 						go (func(i int) {
 							<-w.running_jobs[i].Ch()
 							w.running_jobs[i].SetCh(nil)
@@ -160,7 +165,7 @@ func (w *Worker) runUntilDone() {
 						break
 					}
 
-					w.running_jobs[i].SetCh(make(chan int))
+					w.running_jobs[i].SetCh(make(chan bool))
 					go (func(i int) {
 						<-w.running_jobs[i].Ch()
 						w.running_jobs[i].SetCh(nil)
@@ -178,14 +183,14 @@ func (w *Worker) runUntilDone() {
 	}
 }
 
-func (w *Worker) runJob(p *Package, return_ch chan int) {
+func (w *Worker) runJob(p *Package, return_ch chan bool) {
 
 	// log.Printf("Starting job %d", p.ID)
-	job_ch := make(chan int)
-
-	go func(job_ch chan int) {
+	job_ch := make(chan bool)
+	go func(job_ch chan bool) {
+		// log.Printf("Running job %d", p.ID)
 		p.job.Run()
-		job_ch <- 0
+		job_ch <- true
 	}(job_ch)
 
 	p.Status = Running
@@ -199,7 +204,7 @@ func (w *Worker) runJob(p *Package, return_ch chan int) {
 	w.emit(jobFinished, w.jobs.Get(p.ID))
 	w.emit(JobFinished, w.jobs.Get(p.ID))
 
-	return_ch <- 1
+	return_ch <- true
 }
 
 func (w *Worker) jobFinished(args ...interface{}) {
