@@ -9,8 +9,6 @@ import (
 	"log"
 )
 
-// var worker Worker
-
 type SampleJob struct {
 	Name     string
 	Duration time.Duration
@@ -63,7 +61,7 @@ func TestRun(t *testing.T) {
 	time.Sleep(dur)
 
 	for i := 20; i < 35; i++ {
-		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomFloatDuration(3, 3)}
+		j := SampleJob{Name: fmt.Sprintf("Sample job %d", i+1), Duration: randomFloatDuration(2, 6)}
 		worker.Add(&j)
 	}
 	worker.RunUntilDone()
