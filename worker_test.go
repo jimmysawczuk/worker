@@ -9,19 +9,14 @@ import (
 	"log"
 )
 
-// var worker Worker
-
 type SampleJob struct {
 	Name     string
 	Duration time.Duration
 }
 
-func (s *SampleJob) Run(ch chan int) {
-
+func (s *SampleJob) Run() {
 	time.Sleep(s.Duration)
 	log.Printf("%s done, slept for %s\n", s.Name, s.Duration)
-
-	ch <- 0
 }
 
 func init() {
