@@ -18,11 +18,9 @@ To use this package, all you need to do is package your tasks into types that sa
 
 ```go
 type Job interface {
-	Run(chan int)
+	Run()
 }
 ```
-
-Your `Run` function should emit a value on the channel provided when it's complete.
 
 ### Implementation
 
@@ -34,12 +32,11 @@ type SampleJob struct {
 	Duration time.Duration
 }
 
-func (s *SampleJob) Run(ch chan int) {
+func (s *SampleJob) Run() {
 
 	time.Sleep(s.Duration)
 	log.Printf("Done, slept for %s\n", s.Duration)
 
-	ch <- 0
 }
 
 // only do 3 jobs at a time
@@ -86,7 +83,7 @@ You can find more documentation at [GoDoc][godoc].
 ## License
 
 ```
-Copyright (c) 2013-2014 Jimmy Sawczuk
+Copyright (c) 2013-2015 Jimmy Sawczuk
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
