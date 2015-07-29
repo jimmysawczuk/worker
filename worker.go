@@ -67,11 +67,7 @@ func (w *Worker) nextID() int64 {
 }
 
 func (w *Worker) Add(j Job) {
-	p := &Package{
-		ID:     w.nextID(),
-		Status: Queued,
-		job:    j,
-	}
+	p := NewPackage(w.nextID(), j)
 
 	w.jobs.Set(p)
 	w.queue.Add(p)
@@ -193,7 +189,7 @@ func (w *Worker) runJob(p *Package, return_ch chan bool) {
 		job_ch <- true
 	}(job_ch)
 
-	p.Status = Running
+	p.SetStatus(Running)
 
 	w.emit(jobStarted, w.jobs.Get(p.ID))
 	w.emit(JobStarted, w.jobs.Get(p.ID))
@@ -209,13 +205,12 @@ func (w *Worker) runJob(p *Package, return_ch chan bool) {
 
 func (w *Worker) jobFinished(args ...interface{}) {
 	pk := args[0].(*Package)
-
-	pk.Status = Finished
+	pk.SetStatus(Finished)
 }
 
 func (w *Worker) Stats() (stats WorkerStats) {
 	for _, p := range w.jobs.jobs {
-		switch p.Status {
+		switch p.Status() {
 		case Queued:
 			stats.Queued++
 		case Running:
