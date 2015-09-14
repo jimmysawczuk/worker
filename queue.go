@@ -4,11 +4,13 @@ import (
 	"sync"
 )
 
+// A Queue is an ordered list of Jobs.
 type Queue struct {
 	jobs []*Package
 	lock *sync.RWMutex
 }
 
+// NewQueue returns a new, empty Queue.
 func NewQueue() Queue {
 	q := Queue{
 		jobs: make([]*Package, 0),
@@ -18,6 +20,7 @@ func NewQueue() Queue {
 	return q
 }
 
+// Top returns the first Package in the Queue.
 func (q *Queue) Top() *Package {
 	q.lock.Lock()
 	defer q.lock.Unlock()
@@ -26,12 +29,12 @@ func (q *Queue) Top() *Package {
 		j := q.jobs[0]
 		q.jobs = q.jobs[1:]
 		return j
-	} else {
-		return nil
 	}
 
+	return nil
 }
 
+// Add adds a Package to the end of the Queue.
 func (q *Queue) Add(j *Package) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
@@ -39,6 +42,7 @@ func (q *Queue) Add(j *Package) {
 	q.jobs = append(q.jobs, j)
 }
 
+// Prepend adds a Package to the front of the Queue.
 func (q *Queue) Prepend(j *Package) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
@@ -46,6 +50,7 @@ func (q *Queue) Prepend(j *Package) {
 	q.jobs = append([]*Package{j}, q.jobs...)
 }
 
+// Len returns the length of the Queue.
 func (q *Queue) Len() int {
 	q.lock.RLock()
 	defer q.lock.RUnlock()

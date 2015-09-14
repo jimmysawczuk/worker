@@ -4,18 +4,18 @@ import (
 	"sync"
 )
 
-type Switch struct {
+type lockSwitch struct {
 	val  bool
 	lock *sync.RWMutex
 }
 
-func (s *Switch) init() {
+func (s *lockSwitch) init() {
 	if s.lock == nil {
 		s.lock = new(sync.RWMutex)
 	}
 }
 
-func (s *Switch) On() bool {
+func (s *lockSwitch) On() bool {
 	s.init()
 
 	s.lock.RLock()
@@ -26,7 +26,7 @@ func (s *Switch) On() bool {
 	return r
 }
 
-func (s *Switch) Toggle() {
+func (s *lockSwitch) Toggle() {
 	s.init()
 
 	s.lock.Lock()
@@ -35,7 +35,7 @@ func (s *Switch) Toggle() {
 	s.val = !s.val
 }
 
-func (s *Switch) Set(v bool) {
+func (s *lockSwitch) Set(v bool) {
 	s.init()
 
 	s.lock.Lock()

@@ -88,8 +88,8 @@ func TestRunUntilFinished(t *testing.T) {
 		log.Printf("Job %s added, duration %s\n", job.Name, job.Duration)
 	})
 
-	kill_ch := make(chan ExitCode)
-	go worker.RunUntilStopped(kill_ch)
+	killCh := make(chan ExitCode)
+	go worker.RunUntilStopped(killCh)
 
 	for i := 0; i < 10; i++ {
 		j := SampleJob{Name: fmt.Sprintf("Sample job %d (graceful)", i+1), Duration: randomIntDuration(1, 5)}
@@ -102,10 +102,10 @@ func TestRunUntilFinished(t *testing.T) {
 	}
 
 	time.Sleep(5 * time.Second)
-	kill_ch <- ExitWhenDone
+	killCh <- ExitWhenDone
 	log.Printf("Exiting when done")
 
-	code := <-kill_ch
+	code := <-killCh
 	log.Printf("Exited with code %d", code)
 }
 
@@ -119,8 +119,8 @@ func TestExtendedRun(t *testing.T) {
 		log.Printf("Job %s added, duration %s\n", job.Name, job.Duration)
 	})
 
-	kill_ch := make(chan ExitCode)
-	go worker.RunUntilStopped(kill_ch)
+	killCh := make(chan ExitCode)
+	go worker.RunUntilStopped(killCh)
 
 	for i := 0; i < 10; i++ {
 		j := SampleJob{Name: fmt.Sprintf("Sample job %d (extended)", i+1), Duration: randomIntDuration(1, 5)}
@@ -138,9 +138,9 @@ func TestExtendedRun(t *testing.T) {
 	log.Printf("Sleeping 15 seconds")
 	time.Sleep(15 * time.Second)
 
-	kill_ch <- ExitWhenDone
+	killCh <- ExitWhenDone
 	log.Printf("Exiting when done")
 
-	code := <-kill_ch
+	code := <-killCh
 	log.Printf("Exited with code %d", code)
 }
