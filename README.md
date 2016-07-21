@@ -65,8 +65,9 @@ Your `Job`s are packaged internally as `Package`s, which have nice features such
 You can also listen for events from the `Worker` and react appropriately. Currently, three events are fired: `JobQueued`, `JobStarted`, and `JobFinished`. Add an event handler like so:
 
 ```go
-w.On(worker.JobStarted, func(args ...interface{}) {
-	pk := args[0].(*Package)
+w.On(worker.JobStarted, func(pk *worker.Package, args ...interface{}) {
+	// You can use type assertion to get back your original job from this:
+	job := pk.Job()
 })
 ```
 

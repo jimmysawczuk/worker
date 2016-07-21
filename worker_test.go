@@ -81,9 +81,8 @@ func TestSmallRun(t *testing.T) {
 func TestRunUntilFinished(t *testing.T) {
 	MaxJobs = 5
 	worker := NewWorker()
-	worker.On(JobAdded, func(args ...interface{}) {
-		p := args[0].(*Package)
-		job := *(p.job.(*SampleJob))
+	worker.On(JobAdded, func(p *Package, args ...interface{}) {
+		job := p.Job().(*SampleJob)
 
 		log.Printf("Job %s added, duration %s\n", job.Name, job.Duration)
 	})
@@ -112,9 +111,8 @@ func TestRunUntilFinished(t *testing.T) {
 func TestExtendedRun(t *testing.T) {
 	MaxJobs = 5
 	worker := NewWorker()
-	worker.On(JobAdded, func(args ...interface{}) {
-		p := args[0].(*Package)
-		job := *(p.job.(*SampleJob))
+	worker.On(JobAdded, func(p *Package, args ...interface{}) {
+		job := p.Job().(*SampleJob)
 
 		log.Printf("Job %s added, duration %s\n", job.Name, job.Duration)
 	})
